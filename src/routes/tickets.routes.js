@@ -8,22 +8,20 @@ import {
   deleteTicket
 } from "../controllers/tickets.controller.js"
 
-import { verifyToken } from "../middlewares/verifyToken.js"
-
 export default async function (fastify) {
 
-  fastify.get("/", { preHandler: verifyToken }, getTickets)
+  fastify.get("/", getTickets)
 
-  fastify.get("/:id", { preHandler: verifyToken }, getTicketById)
+  fastify.get("/:id", getTicketById)
 
-  fastify.post("/", { preHandler: verifyToken }, createTicket)
+  fastify.post("/", createTicket)
 
-  fastify.put("/:id", { preHandler: verifyToken }, updateTicket)
+  fastify.put("/:id", updateTicket)
 
-  fastify.patch("/:id/state", { preHandler: verifyToken }, updateTicketState)
+  fastify.patch("/:id/state", updateTicketState)
 
-  fastify.patch("/:id/move", { preHandler: verifyToken }, moveTicket)
+  fastify.patch("/:id/move", moveTicket)
 
-  fastify.delete("/:id", { preHandler: verifyToken }, deleteTicket)
+  fastify.delete("/:id", deleteTicket)
 
 }

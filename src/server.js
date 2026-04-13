@@ -16,13 +16,15 @@ fastify.get("/", async () => {
   return { message: "Microservicio de tickets funcionando 🚀" }
 })
 
-const PORT = process.env.PORT || 3002
+const PORT = process.env.PORT || 3003
 
 fastify.listen({ port: PORT }, (err, address) => {
+
   if (err) {
     fastify.log.error(err)
     process.exit(1)
   }
 
-  console.log(`Servidor corriendo en ${address}`)
+  console.log(`Tickets Service corriendo en ${address}`)
+
 })
