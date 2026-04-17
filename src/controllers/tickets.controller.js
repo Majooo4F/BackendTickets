@@ -200,6 +200,8 @@ export const updateTicketState = async (request, reply) => {
       })
     }
 
+    
+
     return sendResponse(reply, {
       statusCode: 200,
       intOpCode: "SxTK200",
