@@ -215,11 +215,12 @@ export const updateTicketState = async (request, reply) => {
   }
 }
 
-// 🔹 ASIGNAR
+// 🔹 MOVER TICKET (requiere JWT + ser asignado + permiso ticket:mover)
 export const moveTicket = async (request, reply) => {
   try {
     const { id } = request.params
     const { asignado_id } = request.body
+    const usuarioId = request.user?.id   // inyectado por verifyToken
 
     if (!asignado_id) {
       return sendResponse(reply, {
@@ -229,6 +230,61 @@ export const moveTicket = async (request, reply) => {
       })
     }
 
+    // ── 1. Obtener el ticket actual ─────────────────────────────────────────
+    const { data: ticket, error: ticketError } = await supabase
+      .from("tickets")
+      .select("id, asignado_id, grupo_id")
+      .eq("id", id)
+      .single()
+
+    if (ticketError || !ticket) {
+      return sendResponse(reply, {
+        statusCode: 404,
+        intOpCode: "SxTK404",
+        data: { message: "Ticket no encontrado" }
+      })
+    }
+
+    // ── 2. Validar que el usuario sea el asignado o que esté sin asignar ───
+    const estaAsignado = ticket.asignado_id === usuarioId
+    const sinAsignar   = ticket.asignado_id === null || ticket.asignado_id === undefined
+
+    if (!estaAsignado && !sinAsignar) {
+      return sendResponse(reply, {
+        statusCode: 403,
+        intOpCode: "SxTK403",
+        data: { message: "Solo puedes mover tickets asignados a ti" }
+      })
+    }
+
+    // ── 3. Verificar permiso ticket:mover en la tabla grupo_usuario_permisos ─
+    const { data: permisoRows, error: permisoError } = await supabase
+      .from("grupo_usuario_permisos")
+      .select("permiso_id, permisos!inner(nombre)")
+      .eq("grupo_id", ticket.grupo_id)
+      .eq("usuario_id", usuarioId)
+      .eq("activo", true)   // ✅ solo permisos activos (respeta metadata de auditoría)
+
+    if (permisoError) {
+      return sendResponse(reply, {
+        statusCode: 500,
+        intOpCode: "SxTK500",
+        data: { message: "Error al verificar permisos" }
+      })
+    }
+
+    const permisosValidos = new Set(["ticket:mover", "ticket:move", "tickets:move"])
+    const tienePermiso = permisoRows?.some((row) => permisosValidos.has(row.permisos?.nombre))
+
+    if (!tienePermiso) {
+      return sendResponse(reply, {
+        statusCode: 403,
+        intOpCode: "SxTK403",
+        data: { message: "No tienes permiso para mover tickets en este grupo" }
+      })
+    }
+
+    // ── 4. Ejecutar la reasignación ─────────────────────────────────────────
     const { data, error } = await supabase
       .from("tickets")
       .update({ asignado_id })
@@ -265,6 +321,7 @@ export const moveTicket = async (request, reply) => {
     })
   }
 }
+
 
 // 🔹 DELETE
 export const deleteTicket = async (request, reply) => {

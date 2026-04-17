@@ -7,6 +7,7 @@ import {
   moveTicket,
   deleteTicket
 } from "../controllers/tickets.controller.js"
+import { verifyToken } from "../middlewares/verifyToken.js"
 
 export default async function (fastify) {
 
@@ -20,8 +21,9 @@ export default async function (fastify) {
 
   fastify.patch("/:id/state", updateTicketState)
 
-  fastify.patch("/:id/move", moveTicket)
+  // ✅ Ruta protegida: requiere token JWT y valida asignación + permiso
+  fastify.patch("/:id/move", { preHandler: [verifyToken] }, moveTicket)
 
   fastify.delete("/:id", deleteTicket)
 
-}
+}
